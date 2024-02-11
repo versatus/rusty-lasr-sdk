@@ -342,14 +342,14 @@ pub enum Status {
 
 impl AddAssign for Token {
     fn add_assign(&mut self, rhs: Self) {
-        let new_balance = EthU256::from(self.balance) + EthU256::from(rhs.balance());
+        let new_balance = EthU256::from(self.balance) + EthU256::from(rhs.balance);
         self.balance = new_balance.into();
     }
 }
 
 impl SubAssign for Token {
     fn sub_assign(&mut self, rhs: Self) {
-        let new_balance: EthU256 = EthU256::from(self.balance) - EthU256::from(rhs.balance());
+        let new_balance: EthU256 = EthU256::from(self.balance) - EthU256::from(rhs.balance);
         self.balance = new_balance.into();
     }
 }
