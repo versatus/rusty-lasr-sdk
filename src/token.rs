@@ -6,6 +6,7 @@ use std::fmt::{Display, Debug};
 use std::ops::{AddAssign, SubAssign};
 use schemars::JsonSchema;
 use uint::construct_uint;
+use derive_builder::Builder;
 
 use crate::{Address, RecoverableSignature, Transaction};
 
@@ -234,6 +235,16 @@ pub enum TokenType {
     Data
 }
 
+impl ToString for TokenType {
+    fn to_string(&self) -> String {
+        match self {
+            Self::Fungible => "fungible".to_string(),
+            Self::NonFungible => "nonFungible".to_string(),
+            Self::Data => "data".to_string()
+        }
+    }
+}
+
 #[derive(Builder, Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq, PartialOrd, Ord, Hash)] 
 #[serde(rename_all = "camelCase")]
 pub struct Token {
@@ -261,6 +272,7 @@ pub enum TokenField {
     Data,
     Status,
 }
+
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[serde(rename_all = "camelCase")]

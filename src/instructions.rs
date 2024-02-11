@@ -1,9 +1,10 @@
 use std::hash::Hash;
-use crate::{Address, TokenField, Transaction,TokenFieldValue,ProgramField, ProgramFieldValue, DataValue};
+use crate::{Address, TokenField, TokenFieldValue,ProgramField, ProgramFieldValue, DataValue};
 use schemars::JsonSchema;
 use serde::{Serialize, Deserialize};
 use crate::AddressOrNamespace;
 
+//TODO(asmith): Implement custom builders for each instruction type
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateInstruction {
@@ -28,46 +29,6 @@ impl Default for CreateInstruction {
     }
 }
 
-impl CreateInstruction {
-    pub fn accounts_involved(&self) -> Vec<AddressOrNamespace> {
-        let mut accounts_involved = vec![
-            self.program_namespace.clone(),
-            self.program_id.clone(),
-            AddressOrNamespace::Address(self.program_owner.clone()),
-        ];
-
-        for dist in &self.distribution {
-            accounts_involved.push(dist.to.clone());
-        }
-
-        accounts_involved
-    }
-
-    pub fn program_namespace(&self) -> &AddressOrNamespace {
-        &self.program_namespace
-    }
-
-    pub fn program_id(&self) -> &AddressOrNamespace {
-        &self.program_id
-    }
-
-    pub fn program_owner(&self) -> &Address {
-        &self.program_owner
-    }
-
-    pub fn total_supply(&self) -> &crate::U256 {
-        &self.total_supply
-    }
-
-    pub fn initialized_supply(&self) -> &crate::U256 {
-        &self.initialized_supply
-    }
-
-    pub(crate) fn distribution(&self) -> &Vec<TokenDistribution> {
-        &self.distribution
-    }
-}
-
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[serde(rename_all = "camelCase")]
 pub struct TokenDistribution {
@@ -87,28 +48,6 @@ impl Default for TokenDistribution {
             token_ids: vec![crate::U256::from(0)], 
             update_fields: vec![TokenUpdateField::default()] 
         }
-    }
-}
-
-impl TokenDistribution { 
-    pub fn program_id(&self) -> &AddressOrNamespace {
-        &self.program_id
-    }
-
-    pub fn to(&self) -> &AddressOrNamespace {
-        &self.to
-    }
-
-    pub fn amount(&self) -> &Option<crate::U256> {
-        &self.amount
-    }
-
-    pub fn token_ids(&self) -> &Vec<crate::U256> {
-        &self.token_ids
-    }
-
-    pub fn update_fields(&self) -> &Vec<TokenUpdateField> {
-        &self.update_fields
     }
 }
 
@@ -148,35 +87,11 @@ impl Default for TokenUpdateField {
     }
 }
 
-impl TokenUpdateField {
-    pub fn field(&self) -> &TokenField {
-        &self.field
-    } 
-
-    pub(crate) fn value(&self) -> &TokenFieldValue {
-        &self.value
-    }
-}
-
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[serde(rename_all = "camelCase")]
 pub struct ProgramUpdateField {
     field: ProgramField,
     value: ProgramFieldValue 
-}
-
-impl ProgramUpdateField {
-    pub fn new(field: ProgramField, value: ProgramFieldValue) -> Self {
-        Self { field, value }
-    }
-    
-    pub fn field(&self) -> &ProgramField {
-        &self.field
-    }
-
-    pub fn value(&self) -> &ProgramFieldValue {
-        &self.value
-    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
@@ -185,30 +100,33 @@ pub struct UpdateInstruction {
     updates: Vec<TokenOrProgramUpdate>
 }
 
-impl Default for UpdateInstruction {
-    fn default() -> Self {
-        UpdateInstruction { updates: vec![TokenOrProgramUpdate::default()] }
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct UpdateInstructionBuilder {
+    updates: Vec<TokenOrProgramUpdate>
+}
+
+impl UpdateInstructionBuilder {
+    pub fn new() -> Self {
+        Self {
+            updates: Vec::new()
+        }
+    }
+
+    pub fn add(mut self, update: TokenOrProgramUpdate) -> Self {
+        self.updates.push(update);
+        self
     }
 }
 
-impl UpdateInstruction {
-    pub fn new(updates: Vec<TokenOrProgramUpdate>) -> Self {
-        Self { updates }
+impl Default for UpdateInstructionBuilder {
+    fn default() -> Self {
+        Self::new()
     }
+}
 
-    pub(crate) fn accounts_involved(&self) -> Vec<AddressOrNamespace> {
-        let mut accounts_involved = Vec::new();
-        for update in &self.updates {
-            match update {
-                TokenOrProgramUpdate::TokenUpdate(token_update) => accounts_involved.push(token_update.account.clone()),
-                TokenOrProgramUpdate::ProgramUpdate(program_update) => accounts_involved.push(program_update.account.clone()),
-            }
-        }
-        accounts_involved
-    }
-
-    pub fn updates(&self) -> &Vec<TokenOrProgramUpdate> {
-        &self.updates
+impl Default for UpdateInstruction {
+    fn default() -> Self {
+        UpdateInstruction { updates: vec![TokenOrProgramUpdate::default()] }
     }
 }
 
@@ -230,39 +148,11 @@ impl Default for TokenUpdate {
     }
 }
 
-impl TokenUpdate {
-    pub fn account(&self) -> &AddressOrNamespace {
-        &self.account
-    }
-
-    pub fn token(&self) -> &AddressOrNamespace {
-        &self.token
-    }
-
-    pub fn updates(&self) -> &Vec<TokenUpdateField> {
-        &self.updates
-    }
-}
-
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ProgramUpdate {
     account: AddressOrNamespace,
     updates: Vec<ProgramUpdateField>
-}
-
-impl ProgramUpdate {
-    pub fn new(account: AddressOrNamespace, updates: Vec<ProgramUpdateField>) -> Self {
-        Self { account, updates }
-    }
-
-    pub fn account(&self) -> &AddressOrNamespace {
-        &self.account
-    }
-
-    pub fn updates(&self) -> &Vec<ProgramUpdateField> {
-        &self.updates
-    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
@@ -288,62 +178,6 @@ impl Default for TransferInstruction {
     }
 }
 
-impl TransferInstruction {
-    pub fn new(
-        token: Address,
-        from: AddressOrNamespace,
-        to: AddressOrNamespace,
-        amount: Option<crate::U256>,
-        ids: Vec<crate::U256>
-    ) -> Self {
-        Self { token, from, to, amount, ids }
-    }
-
-    pub(crate) fn accounts_involved(&self) -> Vec<AddressOrNamespace> {
-        vec![self.from.clone(), self.to.clone()]
-    }
-
-    pub fn token(&self) -> &Address {
-        &self.token
-    }
-
-    pub fn from(&self) -> &AddressOrNamespace {
-        &self.from
-    }
-
-    pub fn to(&self) -> &AddressOrNamespace {
-        &self.to
-    }
-
-    pub fn amount(&self) -> &Option<crate::U256> {
-        &self.amount
-    }
-
-    pub fn ids(&self) -> &Vec<crate::U256> {
-        &self.ids
-    }
-
-    pub fn replace_this_with_to(&mut self, transaction: &Transaction, _this: &AddressOrNamespace, field: &str) -> Result<(), std::io::Error> {
-        match field {
-            "from" => {
-                self.from = AddressOrNamespace::Address(transaction.to());
-            }
-            "to" => {
-                self.to = AddressOrNamespace::Address(transaction.to());
-            }
-            _ => {
-                return Err(
-                    std::io::Error::new(
-                        std::io::ErrorKind::Other,
-                        "received an invalid string when calling `replace_this_with_to`"
-                    )
-                )
-            }
-        }
-        Ok(())
-    }
-}
-
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct BurnInstruction {
@@ -365,36 +199,6 @@ impl Default for BurnInstruction {
             amount: Some(crate::U256::from(0)),
             token_ids: vec![crate::U256::from(0)] 
         }
-    }
-}
-
-impl BurnInstruction {
-    pub(crate) fn accounts_involved(&self) -> Vec<AddressOrNamespace> {
-        vec![self.from.clone()]
-    }
-
-    pub fn caller(&self) -> &Address {
-        &self.caller
-    }
-
-    pub fn program_id(&self) -> &AddressOrNamespace {
-        &self.program_id
-    }
-    
-    pub fn token(&self) -> &Address {
-        &self.token
-    }
-
-    pub fn from(&self) -> &AddressOrNamespace {
-        &self.from
-    }
-
-    pub fn amount(&self) -> &Option<crate::U256> {
-        &self.amount
-    }
-
-    pub fn token_ids(&self) -> &Vec<crate::U256> {
-        &self.token_ids
     }
 }
 
@@ -424,18 +228,6 @@ pub enum Instruction {
     Burn(BurnInstruction),
     /// Tells the protocol to log something
     Log(LogInstruction) 
-}
-
-impl Instruction {
-    pub fn get_accounts_involved(&self) -> Vec<AddressOrNamespace> {
-        match self {
-            Self::Create(create) => create.accounts_involved(),
-            Self::Update(update) => update.accounts_involved(),
-            Self::Transfer(transfer) => transfer.accounts_involved(),
-            Self::Burn(burn) => burn.accounts_involved(),
-            Self::Log(_log) => vec![] 
-        }
-    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]

@@ -1,11 +1,8 @@
 use schemars::JsonSchema;
 use serde::{Serialize, Deserialize, Deserializer};
 use sha3::{Sha3_256, Digest};
-use crate::{Address, Token, TokenBuilder, Metadata, ArbitraryData, Status};
-use crate::{RecoverableSignature, RecoverableSignatureBuilder};
-use std::collections::BTreeMap;
-use std::fmt::{LowerHex, Display};
-use secp256k1::PublicKey;
+use crate::U256;
+use std::fmt::Display;
 use thiserror::Error;
 use derive_builder::Builder;
 
@@ -23,11 +20,23 @@ impl Display for ToTokenError {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq, PartialOrd, Ord, Hash)] 
 #[serde(rename_all = "camelCase")]
 pub enum TransactionType {
-    BridgeIn(crate::U256),
-    Send(crate::U256),
-    Call(crate::U256),
-    BridgeOut(crate::U256),
-    RegisterProgram(crate::U256)
+    BridgeIn(U256),
+    Send(U256),
+    Call(U256),
+    BridgeOut(U256),
+    RegisterProgram(U256)
+}
+
+impl Display for TransactionType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::BridgeIn(nonce) => write!(f, "{}({})", "bridgeIn", nonce),
+            Self::Send(nonce) => write!(f, "{}({})", "send", nonce),
+            Self::Call(nonce) => write!(f, "{}({})", "call", nonce),
+            Self::BridgeOut(nonce) => write!(f, "{}({})", "bridgeOut", nonce),
+            Self::RegisterProgram(nonce) => write!(f, "{}({})", "registerProgram", nonce),
+        }
+    }
 }
 
 #[derive(Builder, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, JsonSchema, PartialOrd, Ord, Hash)] 
